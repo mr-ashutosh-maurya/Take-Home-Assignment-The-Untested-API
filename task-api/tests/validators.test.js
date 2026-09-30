@@ -1,4 +1,4 @@
-const { validateCreateTask, validateUpdateTask } = require('../src/utils/validators');
+const { validateCreateTask, validateUpdateTask, validateAssignTask } = require('../src/utils/validators');
 
 describe('validateCreateTask', () => {
   test('accepts a minimal valid body', () => {
@@ -26,5 +26,16 @@ describe('validateUpdateTask', () => {
     [{ title: '' }], [{ title: 3 }], [{ status: 'x' }], [{ priority: 'x' }], [{ dueDate: 'x' }],
   ])('rejects %j', (body) => {
     expect(typeof validateUpdateTask(body)).toBe('string');
+  });
+});
+
+describe('validateAssignTask', () => {
+  test('accepts a non-empty assignee', () => {
+    expect(validateAssignTask({ assignee: 'Alice' })).toBeNull();
+  });
+  test.each([
+    [{}], [{ assignee: '' }], [{ assignee: '   ' }], [{ assignee: 42 }], [{ assignee: null }],
+  ])('rejects %j', (body) => {
+    expect(typeof validateAssignTask(body)).toBe('string');
   });
 });

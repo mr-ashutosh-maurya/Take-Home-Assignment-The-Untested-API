@@ -7,7 +7,7 @@ describe('taskService.create', () => {
     const t = service.create({ title: 'A' });
     expect(t).toMatchObject({
       title: 'A', description: '', status: 'todo', priority: 'medium',
-      dueDate: null, completedAt: null,
+      dueDate: null, completedAt: null, assignee: null,
     });
     expect(typeof t.id).toBe('string');
     expect(new Date(t.createdAt).toString()).not.toBe('Invalid Date');
@@ -69,17 +69,21 @@ describe('taskService.getPaginated', () => {
     for (let i = 1; i <= 5; i++) service.create({ title: `t${i}` });
   });
 
-  // BUG: offset = page * limit, so page 1 skips the first page of results
-  test.failing('page 1 returns the first items', () => {
+  test('page 1 returns the first items', () => {
     expect(service.getPaginated(1, 2).map((t) => t.title)).toEqual(['t1', 't2']);
   });
 
-  test.failing('page 2 returns the next items', () => {
+  test('page 2 returns the next items', () => {
     expect(service.getPaginated(2, 2).map((t) => t.title)).toEqual(['t3', 't4']);
   });
 
   test('returns empty array past the last page', () => {
     expect(service.getPaginated(50, 10)).toEqual([]);
+  });
+
+  // Fixed bug: page <= 0 used to produce a negative/zero offset; now clamps to page 1
+  test('page 0 or negative falls back to page 1', () => {
+    expect(service.getPaginated(0, 2).map((t) => t.title)).toEqual(['t1', 't2']);
   });
 });
 
@@ -122,6 +126,26 @@ describe('taskService.remove', () => {
 
   test('returns false for unknown id', () => {
     expect(service.remove('nope')).toBe(false);
+  });
+});
+
+describe('taskService.assignTask', () => {
+  test('sets the assignee on an existing task', () => {
+    const t = service.create({ title: 'a' });
+    const updated = service.assignTask(t.id, 'Alice');
+    expect(updated.assignee).toBe('Alice');
+    expect(service.findById(t.id).assignee).toBe('Alice');
+  });
+
+  test('returns null for unknown id', () => {
+    expect(service.assignTask('nope', 'Alice')).toBeNull();
+  });
+
+  test('overwrites an existing assignee', () => {
+    const t = service.create({ title: 'a' });
+    service.assignTask(t.id, 'Alice');
+    const updated = service.assignTask(t.id, 'Bob');
+    expect(updated.assignee).toBe('Bob');
   });
 });
 
